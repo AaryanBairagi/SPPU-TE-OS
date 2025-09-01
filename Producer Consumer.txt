@@ -1,0 +1,172 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <semaphore.h>
+
+#define MAX_ITEMS 10   // Maximum items a producer can produce
+#define BUFF_SIZE 5    // Buffer size for producer-consumer
+
+pthread_mutex_t mutex;   // Mutex to protect shared buffer
+sem_t empty, full;       // Semaphores for empty and full slots
+sem_t sync_sem;          // Semaphore to synchronize producers and consumers
+int buffer[BUFF_SIZE];   // Shared buffer
+int in = 0, out = 0;     // Indices for the buffer (in and out)
+
+void* producer(void* pno) {
+    int item;
+    for (int i = 0; i < MAX_ITEMS; i++) {
+        item = rand() % 100;  // Produce an item (random number)
+        
+        sem_wait(&empty);  // Decrease empty slot (wait for space)
+        pthread_mutex_lock(&mutex);  // Lock the buffer
+
+        // Insert item into buffer
+        buffer[in] = item;
+        printf("Producer %d produced item %d at index %d\n", *((int*)pno), item, in);
+
+        in = (in + 1) % BUFF_SIZE;  // Move 'in' index circularly
+
+        pthread_mutex_unlock(&mutex);  // Unlock the buffer
+        sem_post(&full);  // Increase full slot (signal a consumer)
+
+        sem_wait(&sync_sem);  // Wait for the consumer to consume the item
+    }
+    return NULL;
+}
+
+void* consumer(void* cno) {
+    int item;
+    for (int i = 0; i < MAX_ITEMS; i++) {
+        sem_wait(&full);  // Decrease full slot (wait for an item to consume)
+        pthread_mutex_lock(&mutex);  // Lock the buffer
+
+        // Consume item from buffer
+        item = buffer[out];
+        printf("Consumer %d consumed item %d from index %d\n", *((int*)cno), item, out);
+
+        out = (out + 1) % BUFF_SIZE;  // Move 'out' index circularly
+
+        pthread_mutex_unlock(&mutex);  // Unlock the buffer
+        sem_post(&empty);  // Increase empty slot (signal a producer)
+
+        sem_post(&sync_sem);  // Signal the producer that the item has been consumed
+    }
+    return NULL;
+}
+
+int main() {
+    pthread_t prod[5], cons[5];  // Arrays of producer and consumer threads
+    int pno[5] = {1, 2, 3, 4, 5};  // Producer numbers
+    int cno[5] = {1, 2, 3, 4, 5};  // Consumer numbers
+
+    // Initialize mutex and semaphores
+    pthread_mutex_init(&mutex, NULL);
+    sem_init(&empty, 0, BUFF_SIZE);  // Initially, all buffer slots are empty
+    sem_init(&full, 0, 0);           // Initially, no items are in the buffer
+    sem_init(&sync_sem, 0, 0);       // Initially, producers will wait
+
+    // Create producer threads
+    for (int i = 0; i < 5; i++) {
+        pthread_create(&prod[i], NULL, producer, (void*)&pno[i]);
+    }
+
+    // Create consumer threads
+    for (int i = 0; i < 5; i++) {
+        pthread_create(&cons[i], NULL, consumer, (void*)&cno[i]);
+    }
+
+    // Join producer threads
+    for (int i = 0; i < 5; i++) {
+        pthread_join(prod[i], NULL);
+    }
+
+    // Join consumer threads
+    for (int i = 0; i < 5; i++) {
+        pthread_join(cons[i], NULL);
+    }
+
+    // Clean up semaphores and mutex
+    pthread_mutex_destroy(&mutex);
+    sem_destroy(&empty);
+    sem_destroy(&full);
+    sem_destroy(&sync_sem);
+
+    return 0;
+}
+/*
+shaunty17@DESKTOP-MSSPH5A:/mnt/d/Shounak/New/Assignment_4$ gcc producer_consumer.c
+shaunty17@DESKTOP-MSSPH5A:/mnt/d/Shounak/New/Assignment_4$ ./a.out
+Producer 1 produced item 83 at index 0
+Producer 3 produced item 77 at index 1
+Producer 5 produced item 15 at index 2
+Consumer 1 consumed item 83 from index 0
+Consumer 1 consumed item 77 from index 1
+Producer 2 produced item 86 at index 3
+Producer 4 produced item 35 at index 4
+Consumer 2 consumed item 15 from index 2
+Consumer 2 consumed item 86 from index 3
+Producer 5 produced item 92 at index 0
+Consumer 4 consumed item 35 from index 4
+Producer 3 produced item 86 at index 1
+Consumer 1 consumed item 92 from index 0
+Producer 4 produced item 49 at index 2
+Producer 5 produced item 62 at index 3
+Consumer 3 consumed item 86 from index 1
+Consumer 2 consumed item 49 from index 2
+Producer 3 produced item 27 at index 4
+Consumer 2 consumed item 62 from index 3
+Producer 3 produced item 90 at index 0
+Consumer 2 consumed item 27 from index 4
+Producer 4 produced item 59 at index 1
+Producer 1 produced item 93 at index 2
+Consumer 5 consumed item 90 from index 0
+Consumer 5 consumed item 59 from index 1
+Producer 2 produced item 21 at index 3
+Producer 3 produced item 63 at index 4
+Consumer 4 consumed item 93 from index 2
+Consumer 1 consumed item 21 from index 3
+Consumer 3 consumed item 63 from index 4
+Producer 2 produced item 36 at index 0
+Producer 3 produced item 26 at index 1
+Consumer 2 consumed item 36 from index 0
+Producer 5 produced item 72 at index 2
+Producer 1 produced item 26 at index 3
+Producer 4 produced item 40 at index 4
+Consumer 5 consumed item 26 from index 1
+Producer 5 produced item 11 at index 0
+Producer 3 produced item 68 at index 1
+Consumer 2 consumed item 72 from index 2
+Consumer 2 consumed item 26 from index 3
+Consumer 3 consumed item 40 from index 4
+Producer 1 produced item 29 at index 2
+Producer 1 produced item 82 at index 3
+Consumer 3 consumed item 11 from index 0
+Consumer 1 consumed item 68 from index 1
+Producer 2 produced item 67 at index 4
+Consumer 5 consumed item 29 from index 2
+Producer 5 produced item 30 at index 0
+Consumer 4 consumed item 82 from index 3
+Producer 3 produced item 62 at index 1
+Consumer 2 consumed item 67 from index 4
+Producer 1 produced item 23 at index 2
+Consumer 3 consumed item 30 from index 0
+Producer 4 produced item 67 at index 3
+Consumer 1 consumed item 62 from index 1
+Producer 2 produced item 35 at index 4
+Consumer 5 consumed item 23 from index 2
+Producer 5 produced item 29 at index 0
+Consumer 4 consumed item 67 from index 3
+Producer 3 produced item 2 at index 1
+Consumer 2 consumed item 35 from index 4
+Producer 1 produced item 22 at index 2
+Consumer 3 consumed item 29 from index 0
+Producer 4 produced item 58 at index 3
+Producer 5 produced item 67 at index 4
+Consumer 1 consumed item 2 from index 1
+Producer 2 produced item 69 at index 0
+Consumer 5 consumed item 22 from index 2
+Consumer 4 consumed item 58 from index 3
+Consumer 3 consumed item 67 from index 4
+Producer 3 produced item 93 at index 1
+Consumer 1 consumed item 69 from index 0
+*/

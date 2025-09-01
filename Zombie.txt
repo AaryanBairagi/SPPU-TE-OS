@@ -1,0 +1,112 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h> 
+
+void bubble_sort(int arr[], int start, int end) {
+    for (int i = start; i < end; i++) {
+        for (int j = i + 1; j < end; j++) {  
+            if (arr[i] > arr[j]) {
+                int temp = arr[i];
+                arr[i] = arr[j];
+                arr[j] = temp;
+            }
+        }
+    }
+    printf("Sorted array using Child Process is: ");
+    for (int i = start; i < end; i++) {
+        printf("%d ", arr[i]);
+    }
+    printf("\n");
+}
+
+void selection_sort(int arr[], int start, int end) {
+    int min_dx, i;
+    for (int i = start; i < end - 1; i++) {
+        min_dx = i; 
+        for (int j = i + 1; j < end; j++) { 
+            if (arr[j] < arr[min_dx]) {
+                min_dx = j;
+            }
+        }
+        int temp = arr[min_dx];
+        arr[min_dx] = arr[i];
+        arr[i] = temp;
+    }
+    printf("Sorted Array using Parent Process is: ");
+    for (int i = start; i < end; i++) {
+        printf("%d ", arr[i]);
+    }
+    printf("\n");
+}
+
+int main() {
+    int size;
+    printf("Enter the size of the Array: ");
+    scanf("%d", &size);
+    int arr[size];
+
+    printf("Enter %d numbers in Array: ", size);
+    for (int i = 0; i < size; i++) {
+        scanf("%d", &arr[i]);
+    }
+
+    int pid = fork();
+    if (pid == 0) {  
+        printf("This is Child Process\n");
+        printf("Child process id: %d\n", getpid());
+        printf("Child's parent process id is: %d\n", getppid());
+        bubble_sort(arr, 0, size);
+        exit(0);  
+    }
+    else if (pid > 0) {  
+        sleep(3); 
+        system("ps -aux");
+        printf("This is Parent Process\n");
+        printf("Parent process id: %d\n", getpid());
+        selection_sort(arr, 0, size);
+        wait(NULL); 
+    }
+    return 0;
+}
+
+
+
+/*
+Enter the size of the Array: 5
+Enter 5 numbers in Array: 5 4 3 2 1
+This is Child Process
+Child process id: 589
+Child's parent process id is: 583
+Sorted array using Child Process is: 1 2 3 4 5
+USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+root           1  0.0  0.1  21672 12904 ?        Ss   13:49   0:00 /sbin/init
+root           2  0.0  0.0   2616  1440 ?        Sl   13:49   0:00 /init
+root           8  0.0  0.0   2616   132 ?        Sl   13:49   0:00 plan9 --control-socket 6 --log-level 4 --server-fd 7
+root          53  0.0  0.2  50440 16108 ?        S<s  13:49   0:00 /usr/lib/systemd/systemd-journald
+root          98  0.0  0.0  23984  5976 ?        Ss   13:49   0:00 /usr/lib/systemd/systemd-udevd
+systemd+     108  0.0  0.1  21452 11772 ?        Ss   13:49   0:00 /usr/lib/systemd/systemd-resolved
+systemd+     115  0.0  0.0  91020  6468 ?        Ssl  13:49   0:00 /usr/lib/systemd/systemd-timesyncd
+root         149  0.0  0.0   4236  2680 ?        Ss   13:49   0:00 /usr/sbin/cron -f -P
+message+     150  0.0  0.0   9532  5172 ?        Ss   13:49   0:00 @dbus-daemon --system --address=systemd: --nofork --n
+root         160  0.0  0.1  17976  8376 ?        Ss   13:49   0:00 /usr/lib/systemd/systemd-logind
+root         163  0.0  0.2 1755840 15996 ?       Ssl  13:49   0:00 /usr/libexec/wsl-pro-service -vv
+root         181  0.0  0.0   3160  1196 hvc0     Ss+  13:49   0:00 /sbin/agetty -o -p -- \u --noclear --keep-baud - 1152
+syslog       187  0.0  0.0 222508  5268 ?        Ssl  13:49   0:00 /usr/sbin/rsyslogd -n -iNONE
+root         189  0.0  0.0   3116  1072 tty1     Ss+  13:49   0:00 /sbin/agetty -o -p -- \u --noclear - linux
+root         195  0.0  0.2 107012 22600 ?        Ssl  13:49   0:00 /usr/bin/python3 /usr/share/unattended-upgrades/unatt
+root         278  0.0  0.0   6692  4628 pts/1    Ss   13:49   0:00 /bin/login -f
+shaunty+     333  0.0  0.1  20260 11324 ?        Ss   13:49   0:00 /usr/lib/systemd/systemd --user
+shaunty+     334  0.0  0.0  21144  1724 ?        S    13:49   0:00 (sd-pam)
+shaunty+     345  0.0  0.0   6072  4808 pts/1    S+   13:49   0:00 -bash
+root         524  0.0  0.0   2620   124 ?        Ss   14:00   0:00 /init
+root         525  0.0  0.0   2620   128 ?        S    14:00   0:00 /init
+shaunty+     530  0.0  0.0   6068  5228 pts/2    Ss   14:00   0:00 -bash
+shaunty+     583  0.0  0.0   2680  1816 pts/2    S+   14:03   0:00 ./a.out
+shaunty+     589  0.0  0.0      0     0 pts/2    Z+   14:03   0:00 [a.out] <defunct>
+shaunty+     590  0.0  0.0   2800  1160 pts/2    S+   14:03   0:00 sh -c -- ps -aux
+shaunty+     591  0.0  0.0   9580  4792 pts/2    R+   14:03   0:00 ps -aux
+This is Parent Process
+Parent process id: 583
+Sorted Array using Parent Process is: 1 2 3 4 5
+*/
