@@ -51,7 +51,7 @@ Inside each assignment folder:
 
 ---
 
-## 📌 Assignment Details & How to Run
+## 📌 Assignment Details 
 
 > All programs target **Linux**. Use `gcc` & **POSIX APIs** (pthreads, semaphores, System V IPC).  
 > Example commands assume you are inside the respective folder.
